@@ -1,0 +1,30 @@
+#+title: My home server setup
+
+Welcome to my home media server setup! It's been a really useful exercise in dealing with the kind of nitty-gritty networking and docker configuration/implementation details that are normally sorted for me in my professional life by some combination of cloud platform and rando founding engineer; I would heartily recommend it to any programmer, especially web developers.
+
+* hardware
+It all started with an old thinkpad t440p that I had laying around. I installed fedora server on it, gave it a more memorable hostname (with =sudo hostnamectl set media-server=), and configured it to automatically log in as my user after booting and to not suspend when the lid is closed (or ever); shazam, it's a server! With that sorted, I plugged it straight into my router with an ethernet cable to keep its connection snappy and reliable and off I went.
+
+A quick aside: old laptops running linux make fabulous home servers! All the normal server workflows work: I do most of my work via SSH, hopping into a persistent tmux session so I don't lose terminal/process state, and edit files via [TRAMP](https://www.gnu.org/software/emacs/manual/html_node/tramp/Quick-Start-Guide.html), a hidden gem of emacs' that lets you open remote files via filepaths like =/ssh:<user>@<host>:~/docker-compose.yml= — think VSCode's Remote-SSH extension, if it didn't automatically install and run a heaviweight node daemon on the server and had [a quarter century](https://github.com/emacsmirror/tramp/blob/2a2d55a53d7fa07e8005bedd8f925d737580f6e6/ChangeLog#L1781) of accumulated tricks (here's a cute one: when working with gzipped files, emacs will transparently populate its in-memory buffer with the uncompressed contents and re-compress when you save). But being a laptop, you can also just... open it, and there's a perfectly functional keyboard and screen for you to use. This removes a whole class of hassle for initial setup, or if I need to work around network or =sshd= downtime. Meanwhile, a closed laptop has a very discrete form factor: during normal operation it sits very neatly tucked under [a cheap IKEA computer stand](https://www.ikea.com/us/en/p/elloven-monitor-stand-with-drawer-white-50474770/) next to my office desk.
+
+If this all sounds compelling but you don't have such a laptop handy, the entry level is dirt cheap: you can find a moderately-specced old thinkpad for under $100 on ebay, and not much more for something faster, smaller, and newer. Installing linux, meanwhile, will only run you a USB thumb drive you can use to boot into [the installer's](https://fedoraproject.org/server/download) .iso disk image.
+
+* foundational software choices
+I'm defining all my services as docker containers, managed with a single docker-compose.yml file. There are a lot of details to unpack here!
+
+** media server
+The motivating use case was being able to stream movies, music, and TV we actually own, so choosing this was the first domino. Jellyfin and Plex look to be the leading candidates for free and self-hostable media servers; I chose Jellyfin on a gut check, since it's cute, well-documented, and my television has an easily-installed client app, and that's pretty much just worked.
+
+** networking
+- tailscale for secure access
+  - devices on my tailnet can access the server from anywhere on Al Gore's internet without any risk of shenanigans from randos or their bots
+  - tailscale's free tier supports 3 users and 100 devices, which should be plenty enough for oh, the next decade and a half of my family's personal use
+  - the ~tailscale cert <tailnet domain>.ts.net~ command generates legitimate signed TLS certs my browser won't yell about
+  - taildrop can be set up to easily add new media files from other computers on the tailnet
+  - if I later want to, er, expose myself to others, tailscale sharing, serve, and funnel exist
+- caddy as a web server and reverse proxy, so I can route human-friendly URL paths to services running on whatever port
+  - https support out of the box, which ≈automatically works with tailscale TLS; if it's running on a tailscale-connected network, all you have to do is mount the tailscale-generated cert files into its container
+- using host networking instead of docker's default bridge network
+  - required disclaimer: on the public internet this would be a glaring security risk! But this server is only accessible via my tailnet and my home network, and I'm not installing untrusted images like a madman
+  - jellyfin requires host networking for fancy server discovery
+  - gives caddy a usable tailnet connection in a way that's dramatically simpler than setting up full per-container network stacks with different IPs than the host computer and individual tailscale installations
