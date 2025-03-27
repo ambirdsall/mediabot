@@ -1,0 +1,25 @@
+(service_paths) {
+	handle_path /whoami* {
+		reverse_proxy localhost:8888
+	}
+
+	# lol, nope, doesn't work as written
+	reverse_proxy /os* host.docker.internal:9090 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+	}
+
+	handle_path /streaming* {
+		reverse_proxy localhost:8096
+	}
+}
+
+media-server.dunker-bonito.ts.net {
+	import service_paths
+}
+
+# domain for local DNS access (via pihole)
+http://media.bot {
+	import service_paths
+}

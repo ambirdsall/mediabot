@@ -1,4 +1,27 @@
+volumes:
+  caddy_data:
+  caddy_config:
+
 services:
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    # ports:
+    #   - "80:80"
+    #   - "443:443"
+    #   - "443:443/udp"
+    cap_add:
+      - net_admin
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./media-server.dunker-bonito.ts.net.crt:/etc/media-server.dunker-bonito.ts.net.crt
+      - ./media-server.dunker-bonito.ts.net.key:/etc/media-server.dunker-bonito.ts.net.key
+      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
+      - caddy_data:/data
+      - caddy_config:/config
+    network_mode: 'host'
+
   jellyfin:
     image: jellyfin/jellyfin
     container_name: jellyfin
@@ -29,3 +52,14 @@ services:
     # Optional - alternative address used for autodiscovery
     # environment:
     #   - JELLYFIN_PublishedServerUrl=http://example.com
+
+  whoami:
+    depends_on:
+      - caddy
+    image: "traefik/whoami"
+    container_name: "whomai"
+    environment:
+      WHOAMI_PORT_NUMBER: 8888
+    network_mode: 'host'
+    # ports:
+    #   - "8888:8888"
