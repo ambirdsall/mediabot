@@ -39,10 +39,10 @@ services:
       - type: bind
         source: ~/jellyfin/media
         target: /media
-      - type: bind
-        source: ~/jellyfin/media2
-        target: /media2
-        read_only: true
+      # - type: bind
+      #   source: ~/jellyfin/media2
+      #   target: /media2
+      #   read_only: true
       # Optional - extra fonts to be used during transcoding with subtitle burn-in
       # - type: bind
       #   source: ~/jellyfin/fonts
