@@ -63,3 +63,14 @@ services:
     network_mode: 'host'
     # ports:
     #   - "8888:8888"
+
+  ripper:
+    build: ./ripper
+    devices:
+      - "/dev/sr0:/dev/sr0"
+      - "/dev/sg1:/dev/sg1"
+    volumes:
+      - type: bind
+        source: ~/jellyfin/media
+        target: /media
+      - ./ripper/app:/app
