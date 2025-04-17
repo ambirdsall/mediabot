@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+
+# normalize so padded numbers like "01" aren't parsed as base-8
+normalize () {
+    local n=$1
+    if echo "$n" | grep -E '0.' > /dev/null; then
+        echo -n $n | tail --bytes=-1
+    else
+        echo "$n"
+    fi
+
+}
+
+main () {
+    # TODO get bash script location for bin/gum instead of assuming the right CWD
+    if ! bin/gum confirm "Confirm when the DVD to rip is in the drive, or select [no] to exit"; then
+        exit 0
+    fi
+
+    local series
+    local release_year
+    local series_dir
+    local season
+    local season_dir
+    local next_ep_num
+    # - get series from user
+    if bin/gum confirm "Are there already episodes of this show in the media library?"; then
+        # `bin/gum choose` from immediate child directories of /media/shows
+        series_dir=$(ls /media/shows | bin/gum choose)
+        # $series_dir is a string like "$series ($release_year)"; extract $series and $release_year
+        series=$(echo "$series_dir" | sed -E 's/ \([0-9]{4}\)$//')
+        release_year=$(echo "$series_dir" | sed -E 's/^.* \(([0-9]{4})\)$/\1/')
+        # ask if new season;
+        if bin/gum confirm "Are there already episodes from this season in the media library?"; then
+            #   + if yes
+            #     - choose from existing season directories
+            season_dir=$(ls "/media/shows/${series_dir}" | bin/gum choose)
+            season=$(echo -n $season_dir | sed -E 's/^Season //')
+            #     - prompt for disk's first ep#, defaulting to the lowest un-ripped ep#
+            local lowest_ripped_ep=$(ls "/media/shows/${series_dir}/${season_dir}" | grep -oE '..\.mkv$' | grep -oE '^..' | sort | head -n 1)
+            # normalize so padded numbers like "01" aren't parsed as base-8
+            if echo "$lowest_ripped_ep" | grep -E '0.' > /dev/null; then
+                lowest_ripped_ep=$(echo -n $lowest_ripped_ep | tail --bytes=-1)
+            fi
+            local highest_ripped_ep=$(ls "/media/shows/${series_dir}/${season_dir}" | grep -oE '..\.mkv$' | grep -oE '^..' | sort | tail -n 1)
+            # normalize so padded numbers like "01" aren't parsed as base-8
+            if echo "$highest_ripped_ep" | grep -E '0.' > /dev/null; then
+                highest_ripped_ep=$(echo -n $highest_ripped_ep | tail --bytes=-1)
+            fi
+            local first_unripped_ep=$(test "$lowest_ripped_ep" == "1" && printf "%d" $(((highest_ripped_ep+1))) || echo -n 1)
+
+            echo lowest is $lowest_ripped_ep
+            echo highest is $highest_ripped_ep
+            echo first unripped ep is $first_unripped_ep
+
+            next_ep_num=$(printf "%02d" $(bin/gum input --value=$first_unripped_ep --prompt="First episode number on this disk: "))
+        else
+            #   + if no
+            #     - prompt for season number
+            season=$(printf "%02d" $(bin/gum input --prompt="Season number (enter 0 for specials etc. with no season): "))
+            season_dir="Season ${season}"
+            #     - prompt for disk's first ep#, defaulting to 1
+            next_ep_num=$(printf "%02d" $(bin/gum input --value=1 --prompt="First episode number on this disk: "))
+        fi
+    else
+        # prompt for series name
+        series=$(bin/gum input --prompt="Name of series: ")
+        # prompt for release year
+        release_year=$(bin/gum input --prompt="Year series came out: ")
+        series_dir="${series_name} ($release_year)"
+        # prompt for season number, defaulting to 1
+        season=$(printf "%02d" $(bin/gum input --value=1 --prompt="Season number (enter 0 for specials etc. with no season): "))
+        season_dir="Season ${season}"
+        # prompt for disk's first ep#, defaulting to 1
+        next_ep_num=$(printf "%02d" $(bin/gum input --value=1 --prompt="First episode number on this disk: "))
+    fi
+
+    if bin/gum confirm "Ready to rip this shit, starting at /media/shows/$series_dir/$season_dir/$series S${season}E${next_ep_num}.mkv?"; then
+        # ensure season directory exists
+        mkdir -p "/media/shows/$series_dir/$season_dir"
+        local another_disk_to_go=t
+        while test -n "$another_disk_to_go"; do
+            makemkvcon --minlength=1000 mkv disc:0 all /media/inbox
+
+            echo -e "\n\n\nRip city baby yeahhhhhhhhhhh!\n"
+
+            # TODO we can do automated sanity checks here! No other .mkv files in the inbox before ripping
+            echo "Mind checking my work?"
+            ls /media/inbox/*.mkv
+            echo -e "\nIf that's all (and only!) the tracks you intended to rip just now, we can"
+            echo "automatically rename and file them."
+            if ! bin/gum confirm "Should I go ahead and do that?"; then
+                echo "okay, hope there's not too much cleanup!"
+                exit 1
+            fi
+
+            while IFS= read -r f; do
+                # sudo mv "$f" "/media/shows/$series_dir/$season_dir/$series S${season}E${next_ep_num}.mkv"
+                mv "$f" "/media/shows/$series_dir/$season_dir/$series S${season}E${next_ep_num}.mkv"
+                next_ep_num=$(printf "%02d" $((($(normalize $next_ep_num)+1))))
+            done < <(find /media/inbox -type f -name '*.mkv' | sort)
+
+            echo "After ripping and renaming, we got:"
+            ls "/media/shows/$series_dir/$season_dir"
+
+            another_disk_to_go=$(bin/gum confirm "Do you have another disk to rip for this season? (If so, pls insert *before* confirming)" && echo yep)
+        done
+    fi
+}
+main "$@"
