@@ -15,7 +15,7 @@ HOUSE_STYLE = questionary.Style([
     ("separator", "fg:#867666"),         # cool taupe
 ])
 
-def choice(shortcut_key, title, **kwargs) -> questionary.Choice:
+def choice(title, shortcut_key=None, **kwargs) -> questionary.Choice:
     return questionary.Choice(title, shortcut_key=shortcut_key, **kwargs)
 
 async def select(prompt: str, choices: list[str | questionary.Choice], **kwargs) -> str:
@@ -73,9 +73,12 @@ if __name__ == '__main__':
     async def test():
         if await confirm("Are there already episodes of this show in the media library?"):
             console = Console()
-            showdir = await select_subdir(SHOWS_DIR, console=console)
+            fake_eps = [
+                choice()
+            ]
+            # showdir = await select_subdir(SHOWS_DIR, console=console)
 
-            if await confirm("Are there already episodes from this season in [ibid]?"):
-                pprint(f'{showdir}/' + await select_subdir(SHOWS_DIR / showdir, console=console))
+            # if await confirm("Are there already episodes from this season in [ibid]?"):
+            #     pprint(f'{showdir}/' + await select_subdir(SHOWS_DIR / showdir, console=console))
 
     asyncio.run(test())

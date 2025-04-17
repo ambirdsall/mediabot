@@ -60,9 +60,9 @@ async def main():
         cli.media_type = await select(
             "What type of media is on this disk?",
             choices=[
-                choice("f", "Film", value="movie"),
-                choice("s", "TV Show", value="show"),
-                choice("m", "Music", value="music")
+                choice("Film", "f", value="movie"),
+                choice("TV Show", "s", value="show"),
+                choice("Music", "m", value="music")
             ],
         )
 
