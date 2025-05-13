@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 
 import ipdb
+import nest_asyncio
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 from tqdm import tqdm
@@ -66,10 +67,10 @@ async def main():
         case _:
             raise Error(f'what the hell kind of media type is {cli.media_type}')
 
-    makemkv = await init_makemkv()
-    ripper.use(makemkv)
+    with console.status("Reading disc...", spinner="moon"):
+        await ripper.init_makemkv()
 
-    await ripper.select_titles()
+    await ripper.multiselect_titles()
 
     # TODO decouple confirm and rip
     if not await ripper.confirm_and_rip():
@@ -190,56 +191,11 @@ async def confirm_and_rip(preconfirm=False, debug=False):
             # if so, should return `False`
         return True
 
-async def init_makemkv():
-    makemkv = MakeMKV(setup_logger(logging.INFO))
-    cli = get_cli_args()
-    await makemkv.init()
-
-    if cli.debug:
-        print(f'MakeMKV version: {await makemkv.get_app_string(AppString.Version)}')
-        print(f'MakeMKV platform: {await makemkv.get_app_string(AppString.Platform)}')
-        print(f'MakeMKV build: {await makemkv.get_app_string(AppString.Build)}')
-        print(f'Interface language: {await makemkv.get_app_string(AppString.InterfaceLanguage)}')
-
-    await makemkv.set_output_folder('/media/inbox')
-    await makemkv.update_avalible_drives()
-
-    print('Waiting for disc...')
-    await wait_for_disc_inserted(makemkv)
-
-    print('Waiting for titles...')
-    await wait_for_titles_populated(makemkv)
-
-    return makemkv
-
-def setup_logger(log_level):
-    logger = getLogger(__name__)
-    logger.setLevel(log_level)
-
-    handler = StreamHandler(sys.stdout)
-    handler.setLevel(log_level)
-
-    logger.addHandler(handler)
-    return logger
-
-async def wait_for_disc_inserted(makemkv):
-    while True:
-        drives = [v for v in makemkv.drives.values() if v.drive_state is DriveState.Inserted]
-        if len(drives) > 0:
-            drive = drives[0]
-            await makemkv.open_cd_disk(drive.drive_id)
-            break
-
-        await makemkv.idle()
-        await asyncio.sleep(0.25)
-
-async def wait_for_titles_populated(makemkv):
-    while makemkv.titles is None:
-        await makemkv.idle()
-        await asyncio.sleep(0.25)
 
 def cli():
-    asyncio.run(main())
+    evloop = asyncio.get_event_loop()
+    nest_asyncio.apply(evloop)
+    evloop.run_until_complete(main())
 
 if __name__ == '__main__':
     cli()
