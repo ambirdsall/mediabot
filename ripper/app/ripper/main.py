@@ -1,4 +1,3 @@
-import argparse
 import asyncio
 from datetime import timedelta
 import logging
@@ -17,25 +16,6 @@ from ripper.mmkv_abi.mmkv import MakeMKV
 from ripper.mmkv_abi.app_string import AppString
 
 from ripper.rippers import Movie, Music, Show
-
-def get_cli_args():
-    parser = argparse.ArgumentParser(description="Rip DVDs to the media server's jellyfin library")
-    # this should have a short-form alias `-m`
-    parser.add_argument("-m", "--media-type", choices=["movie", "show", "music"], help="Should this disc's track(s) go in movies/, shows/, or music/?")
-    parser.add_argument("-d", "--debug", action="store_true", help="Check under the hood with breakpoints, logging, other dev shenanigans")
-    parser.add_argument("-t", "--title", help="Title of the media on disc (movie/album title, name of tv show, etc)")
-    parser.add_argument("-y", "--year", help="Release year of the media on disc")
-
-    # these should be mutually exclusive subcommands
-    subparsers = parser.add_subparsers(dest="command")
-    rip_parser = subparsers.add_parser("rip", help="Attempt to rip the DVD contents")
-    info_parser = subparsers.add_parser("info", help="Get information about the DVD contents")
-
-    # Set default command to info if none provided
-    parser.set_defaults(command="info")
-
-    cli = parser.parse_args()
-    return cli
 
 async def main():
     media = Path('/media')
