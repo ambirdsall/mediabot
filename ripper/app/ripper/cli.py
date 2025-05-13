@@ -79,7 +79,25 @@ async def select_subdir(parent_dir: Path, console: Console) -> str:
     return await questionary.autocomplete(
         "Which one?",
         choices=subdirs,
-        validate=lambda show: show in subdirs,
+        validate=lambda subdir: subdir in subdirs,
+        ignore_case=True,
+        style=HOUSE_STYLE,
+    ).ask_async()
+
+async def select_file(parent_dir: Path, console: Console) -> str:
+    table = Table()
+    table.add_column("Show", style="cyan", no_wrap=True)
+
+    files = sorted([p.name for p in parent_dir.iterdir() if not p.is_dir()])
+    for name in files:
+        table.add_row(name)
+
+    console.print(table)
+
+    return await questionary.autocomplete(
+        "Which one?",
+        choices=files,
+        validate=lambda file: file in files,
         ignore_case=True,
         style=HOUSE_STYLE,
     ).ask_async()
