@@ -52,7 +52,7 @@ class Ripper:
         titlename = await title.get_name()
         chaptercount = await title.get_chapter_count()
         disk_usage = await title.get_disc_size()
-        print(f"\n\n{f'Track {number}' if number else 'Next track'}}")
+        print(f"\n\n{f'Track {number}' if number else 'Next track'}")
         print(f'\t{titlename}')
         print(f'\t{disk_usage}: {chaptercount} chapter(s), {duration}')
 
