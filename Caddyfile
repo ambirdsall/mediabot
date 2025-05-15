@@ -3,11 +3,8 @@
 		reverse_proxy localhost:8888
 	}
 
-	# lol, nope, doesn't work as written
-	reverse_proxy /os* host.docker.internal:9090 {
-		transport http {
-			tls_insecure_skip_verify
-		}
+	handle_path /os* {
+		redir {scheme}://{host}:9090{uri}
 	}
 
 	handle_path /streaming* {
