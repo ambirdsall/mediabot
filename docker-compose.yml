@@ -17,7 +17,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - ./media-server.dunker-bonito.ts.net.crt:/etc/media-server.dunker-bonito.ts.net.crt
       - ./media-server.dunker-bonito.ts.net.key:/etc/media-server.dunker-bonito.ts.net.key
-      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
+      - /run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
       - caddy_data:/data
       - caddy_config:/config
     network_mode: 'host'
