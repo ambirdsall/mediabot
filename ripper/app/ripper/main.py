@@ -26,21 +26,6 @@ async def main():
     media = Path('/media')
     cli = get_cli_args()
     console = Console()
-    # examples:
-    #
-    # with console.status(msg, spinner='moon'):
-    #     do_stuff()
-    #
-    # console.rule("[bold red]Example title for horizontal rule")
-    #
-    # console.log("message with timestamp, optional debugging info")
-    #
-    # console.print(
-    #   "Unike justify=None, justify='left' will ' '-pad right of message str until it's console width",
-    #   style="bold white on blue",
-    #   justify="left|center|right"
-    # )
-
     if not cli.media_type:
         cli.media_type = await select(
             "What type of media is on this disk?",
@@ -140,39 +125,12 @@ async def main():
         case 'music':
             pass
 
-async def confirm_and_rip(preconfirm=False, debug=False):
-    print('\n\nTitle Tree:')
-    await makemkv.titles.print()
-
-    we_good = Confirm.ask('we good?')
-    if we_good:
-        print('\n\nSaving selected titles...')
-        if debug:
-            ipdb.set_trace()
-        await makemkv.save_all_selected_to_mkv()
-
-        with tqdm(total=65536) as pbar:
-            while makemkv.job_mode:
-                if pbar.n > makemkv.total_bar:
-                    pbar.reset()
-                    pbar.update(makemkv.total_bar)
-                else:
-                    pbar.update(makemkv.total_bar - pbar.n)
-
-                pbar.set_description(makemkv.current_info[4])
-                pbar.set_postfix_str(makemkv.current_info[3])
-
-                await makemkv.idle()
-                await asyncio.sleep(0.25)
-            # TODO can I detect failure (e.g. due to insufficient disk space) post-`makemkv.job_mode`?
-            # if so, should return `False`
-        return True
-
 
 def cli():
     evloop = asyncio.get_event_loop()
     nest_asyncio.apply(evloop)
     evloop.run_until_complete(main())
+
 
 if __name__ == '__main__':
     cli()
