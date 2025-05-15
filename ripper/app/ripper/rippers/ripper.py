@@ -6,10 +6,9 @@ from pathlib import Path
 import re
 import sys
 
-from rich.prompt import Confirm
 from tqdm import tqdm
 
-from ripper.cli import choice, multiselect, get_cli_args
+from ripper.cli import choice, confirm, multiselect, get_cli_args
 from ripper.mmkv_abi.drive_info.drive_state import DriveState
 from ripper.mmkv_abi.mmkv import MakeMKV
 from ripper.mmkv_abi.app_string import AppString
@@ -149,13 +148,14 @@ class Ripper:
         print('\n\nTitle Tree:')
         await self.makemkv.titles.print()
 
-        we_good = Confirm.ask('we good?')
+        we_good = await confirm('we good?')
         if we_good:
             print('\n\nSaving selected titles...')
             if debug:
                 ipdb.set_trace()
             await self.makemkv.save_all_selected_to_mkv()
 
+            # TODO use cool emoji moon spinner for progress here, too
             with tqdm(total=65536) as pbar:
                 while self.makemkv.job_mode:
                     if pbar.n > self.makemkv.total_bar:
