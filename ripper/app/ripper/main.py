@@ -10,6 +10,8 @@ import nest_asyncio
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 from tqdm import tqdm
+from dotenv import load_dotenv
+
 
 from ripper.cli import *
 from ripper.mmkv_abi.drive_info.drive_state import DriveState
@@ -17,6 +19,8 @@ from ripper.mmkv_abi.mmkv import MakeMKV
 from ripper.mmkv_abi.app_string import AppString
 
 from ripper.rippers import Movie, Music, Show
+
+load_dotenv()
 
 async def main():
     media = Path('/media')
@@ -49,9 +53,10 @@ async def main():
 
     match cli.media_type:
         case 'movie':
-            ripper = Movie(
-                title=cli.title or Prompt.ask("title of film?"),
-                year=cli.year or Prompt.ask("year released?")
+            ripper = await Movie.new(
+                console=console,
+                title=cli.title,
+                year=cli.year,
             )
         case 'show':
             ripper = await Show.new(
@@ -80,35 +85,7 @@ async def main():
 
     match cli.media_type:
         case 'movie':
-            # TODO seed with title from dvd? autocomplete from movie db API?
-            title = Prompt.ask("What's the movie's title?")
-            # TODO look up year etc in some movie db API?
-            year = Prompt.ask("What year was it released?")
-
-            movie_basename = f'{title} ({year})'
-            if Confirm.ask(f"You good moving ahead with the name `{filename}`?"):
-                # get
-                old_filename = Path(makemkv.current_info[4])
-                if not old_filename.suffix('.mkv'):
-                    candidate_files = [f for f in media.iterdir() if f.suffix == '.mkv']
-                    if len(candidate_files) == 1:
-                        old_filename = candidate_files[0]
-
-                media.mkdir("movies/{movie_basename}", exist_ok=True)
-                # TODO move this file somewhere in `/media/rips` after converting
-                new_file = old_filename.rename('/media/movies/{movie_basename}/{movie_basename} - original.mkv')
-
-                if new_file.is_file():
-                    print(f'lo it is ript to {new_file}')
-                    convert_it_pls = Confirm.ask("should I convert it to .mp4 too?")
-                    if convert_it_pls:
-                        # run shell command like:
-                        # f"ffmpeg -i {new_file_dot_mkv} -c copy {new_file_dot_mp4}"
-                        # (may need to use /tmp/ffmpeg/bin/ffmpeg)
-                        print(f"pretend I'm converting '{new_file}' to '{new_file.with_suffix(".mp4")}' here:")
-                        print(f"\t$ ffmpeg -i {new_file} -c copy {new_file.with_suffix(".mp4")}")
-                else:
-                    print(f"I thought I was saving the video as {new_file}, but that seems to not be a file??")
+            await ripper.rename_ripped_files()
         case 'show':
             # TODO ask if the series/season already exists in media library
             # else: seed with title from dvd? autocomplete from some API?
