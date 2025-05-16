@@ -9,7 +9,7 @@ from .ripper import Ripper
 
 class Show(Ripper):
     @classmethod
-    async def new(cls, console=Console(), title=None, year=None, season=None, starts_at_episode=1):
+    async def new(cls, console=Console(), title=None, year=None, season=None, starts_at_episode=None):
         if all(arg is None for arg in [title, year, season]):
             if await confirm("Are there already episodes of this show in the media library?"):
                 media_dir = Path("/media/shows")
@@ -24,7 +24,7 @@ class Show(Ripper):
         title = title or await text("What's the show's title?")
         year = year or await text('What year was it released?')
         season = season or await text('What season? e.g. 01, 02, or 00 for special eps')
-        starts_at_episode = starts_at_episode or await text("episode number of this disc's first track", default=1)
+        starts_at_episode = starts_at_episode or await text("episode number of this disc's first track", default="1")
 
         return cls(
             console=console,
