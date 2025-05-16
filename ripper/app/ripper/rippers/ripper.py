@@ -77,6 +77,7 @@ class Ripper:
         await makemkv.update_avalible_drives()
 
         self.makemkv = makemkv
+        self.selected_tracks = []
 
         if cli.debug:
             print('Waiting for disc...')
@@ -86,6 +87,10 @@ class Ripper:
             print('Waiting for titles...')
         await self._wait_for_titles_populated()
 
+
+    async def _select_track(self, track):
+        self.selected_tracks.append(track)
+        await track.set_enabled(True)
 
     # TODO encapsulate mmkv setup shenanigans
     def setup_logger(self, log_level):
@@ -141,7 +146,7 @@ class Ripper:
         )
 
         for idx in selected_title_idxs:
-             await titles[idx].set_enabled(True)
+             await self._select_track(titles[idx])
 
 
     async def confirm_and_rip(self, preconfirm=False, debug=False):
