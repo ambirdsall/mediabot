@@ -69,61 +69,13 @@ async def main():
         return
 
     match cli.media_type:
-        case 'movie':
+        case 'movie' | 'show':
             await ripper.rename_ripped_files()
-        case 'show':
-            # TODO ask if the series/season already exists in media library
-            # else: seed with title from dvd? autocomplete from some API?
-            if Confirm.ask("Are there already episodes of this show in the media library?"):
-                title = Prompt.ask("What's the show's title?")
-                year = Prompt.ask('What year was it released?')
-                season = Prompt.ask('What season? e.g. 01, 02, or 00 for special eps')
-                first_episode = Prompt.ask('What is the episode number of the first track on this disk?', default=1)
-
-                show_basename = f'{title} ({year})'
-                season_dir = f'Season {season}'
-            else:
-                title = Prompt.ask("What's the show's title?")
-                # TODO look up year etc in some movie db API?
-                year = Prompt.ask('What year was it released?')
-                season = Prompt.ask('What season? e.g. 01, 02, or 00 for special eps')
-                first_episode = Prompt.ask('What is the episode number of the first track on this disk?', default=1)
-
-                show_basename = f'{title} ({year})'
-                season_dir = f'Season {season}'
-            if Confirm.ask(f'You good moving ahead and importing ep(s) to `{show_basename}/{season_dir}`?'):
-                # get
-                old_filename = Path(makemkv.current_info[4])
-                if not old_filename.suffix('.mkv'):
-                    candidate_files = [f for f in media.iterdir() if f.suffix == '.mkv']
-                    if len(candidate_files) == 1:
-                        old_filename = candidate_files[0]
-                    else:
-                        # TODO ls /media/inbox, ask user to pick file themselves
-                        ...
-
-                media.mkdir(f"shows/{show_basename}/{season_dir}", parents=True, exist_ok=True)
-                if cli.debug:
-                    ipdb.set_trace()
-                # TODO sanity check! count # of tracks selected? before/after dir listings of /media/inbox? idk.
-                # for i, file in enumerate(/media/inbox/*.mkv):
-                #     mv $file /media/shows/{show_basename}/{season_dir}/
-                # new_file = old_filename.rename('/media/shows/{show_basename}/{season_dir}/{show_basename} S{season}E{first_episode + i}')
-
-                # if new_file.is_file():
-                #     print(f'lo it is ript to {new_file}')
-                #     convert_it_pls = Confirm.ask("should I convert it to .mp4 too?")
-                #     if convert_it_pls:
-                #         # run shell command like:
-                #         # f"ffmpeg -i {new_file_dot_mkv} -c copy {new_file_dot_mp4}"
-                #         # (may need to use /tmp/ffmpeg/bin/ffmpeg)
-                #         print(f"pretend I'm converting '{new_file}' to '{new_file.with_suffix(".mp4")}' here:")
-                #         print(f"\t$ ffmpeg -i {new_file} -c copy {new_file.with_suffix(".mp4")}")
-                # else:
-                #     print(f"I thought I was saving the video as {new_file}, but that seems to not be a file??")
-
         case 'music':
             pass
+        case _:
+            print('the fuck')
+            import ipdb; ipdb.set_trace()
 
 
 def cli():

@@ -42,53 +42,57 @@ class Show(Ripper):
         self.season = season
         self.year = year
         self.starts_at_episode = starts_at_episode
+        self.show_dir = self.media_dir / f'{self.title} ({self.year})'
+        self.season_dir = self.show_dir / f'Season {season}'
 
     def expect_rip(self, duration) -> bool:
         return duration > self.episode_lower_bound and duration < self.episode_upper_bound
-
-    def multiselect_choice_from_track(self, track):
-        # TODO do? use self.expect_rip to set preselect state, return some kinda id
-        ...
 
     async def display_title(self, title, duration=None, number=1):
         return await super().display_title(title, duration=duration, number=number)
 
     async def rename_ripped_files(self):
-        title = Prompt.ask("What's the show's title?")
-        # TODO look up year etc in some movie db API?
-        year = Prompt.ask('What year was it released?')
-        season = Prompt.ask('What season? e.g. 01, 02, or 00 for special eps')
-        first_episode = Prompt.ask('What is the episode number of the first track on this disk?', default=1)
+        """Move ripped episode files from `/media/inbox/*.mkv` to
+        `/media/shows/<title>/Season <season>/<title> S<season>E<episode>.mkv`
+        based on the order of selected tracks and assumed episode sequence.
+        """
+        media = Path("/media")
+        inbox = media / "inbox"
+        cli = get_cli_args()
 
-        show_dir = f'{title} ({year})'
-        season_dir = f'Season {season}'
-        if Confirm.ask(f'You good moving ahead and importing ep(s) to `{show_dir}/{season_dir}`?'):
-            # get
-            old_filename = Path(makemkv.current_info[4])
-            if not old_filename.suffix('.mkv'):
-                candidate_files = [f for f in media.iterdir() if f.suffix == '.mkv']
-                if len(candidate_files) == 1:
-                    old_filename = candidate_files[0]
-                else:
-                    # TODO ls /media/inbox, ask user to pick file themselves
-                    ...
+        if not await confirm(f'You good moving ahead and importing ep(s) to `{self.season_dir}`?'):
+            return
 
-            media.mkdir(f"shows/{show_dir}/{season_dir}", parents=True, exist_ok=True)
+        # Gather all MKV files in /media/inbox
+        ripped_files = sorted(f for f in inbox.iterdir() if f.suffix == '.mkv')
+        track_count = len(self.selected_tracks)
+        file_count = len(ripped_files)
+
+        if file_count != track_count:
+            self._console.print(
+                f"[yellow]⚠️ Found {file_count} ripped .mkv files, "
+                f"but you selected {track_count} tracks.[/yellow]"
+            )
+
+            # FIXME if there was an issue ripping one or more tracks, there will be fewer
+            # selectable files than selections and this instruction will frustrate more
+            # than help.
+            # - minimal: rephrase
+            # - ideal: compare size and/or runtimes of ripped mkv files to selected tracks to try to match them automatically
+            self._console.print(f"[green]Please select all files for the {track_count} tracks you ripped[/green]")
+            selected_files = await select_file(inbox, self._console, multiple=True)
+            ripped_files = [inbox / filename for filename in selected_files]
+
+        self.season_dir.mkdir(parents=True, exist_ok=True)
+
+        for i, ripped_file in enumerate(ripped_files):
+            episode = self.starts_at_episode + i
+            new_name = f"{self.title} S{self.season}E{episode:02d}.mkv"
+            destination = self.season_dir / new_name
+
             if cli.debug:
-                ipdb.set_trace()
-            # TODO sanity check! count # of tracks selected? before/after dir listings of /media/inbox? idk.
-            # for i, file in enumerate(/media/inbox/*.mkv):
-            #     mv $file /media/shows/{show_dir}/{season_dir}/
-            # new_file = old_filename.rename('/media/shows/{show_dir}/{season_dir}/{title} S{season}E{0 if i < 9 else ""}{first_episode + i}.mkv')
+                print(f"Moving: {ripped_file} → {destination}")
 
-            # if new_file.is_file():
-            #     print(f'lo it is ript to {new_file}')
-            #     convert_it_pls = Confirm.ask("should I convert it to .mp4 too?")
-            #     if convert_it_pls:
-            #         # run shell command like:
-            #         # f"ffmpeg -i {new_file_dot_mkv} -c copy {new_file_dot_mp4}"
-            #         # (may need to use /tmp/ffmpeg/bin/ffmpeg)
-            #         print(f"pretend I'm converting '{new_file}' to '{new_file.with_suffix(".mp4")}' here:")
-            #         print(f"\t$ ffmpeg -i {new_file} -c copy {new_file.with_suffix(".mp4")}")
-            # else:
-            #     print(f"I thought I was saving the video as {new_file}, but that seems to not be a file??")
+            ripped_file.rename(destination)
+
+        print(f"✅ Imported {len(ripped_files)} episode(s) to `{self.season_dir}`.")
