@@ -84,7 +84,7 @@ async def select_subdir(parent_dir: Path, console: Console) -> str:
         style=HOUSE_STYLE,
     ).ask_async()
 
-async def select_file(parent_dir: Path, console: Console) -> str:
+async def select_file(parent_dir: Path, console: Console, multiple: bool = False) -> str:
     table = Table()
     table.add_column("Show", style="cyan", no_wrap=True)
 
@@ -94,13 +94,19 @@ async def select_file(parent_dir: Path, console: Console) -> str:
 
     console.print(table)
 
-    return await questionary.autocomplete(
-        "Which one?",
-        choices=files,
-        validate=lambda file: file in files,
-        ignore_case=True,
-        style=HOUSE_STYLE,
-    ).ask_async()
+    if multiple:
+        return await multiselect(
+            "Which ones?",
+            choices=files,
+        )
+    else:
+        return await questionary.autocomplete(
+            "Which one?",
+            choices=files,
+            validate=lambda file: file in files,
+            ignore_case=True,
+            style=HOUSE_STYLE,
+        ).ask_async()
 
 
 if __name__ == '__main__':
