@@ -117,12 +117,16 @@ if __name__ == '__main__':
     async def test():
         if await confirm("Are there already episodes of this show in the media library?"):
             console = Console()
-            fake_eps = [
-                choice()
+            fake_domains = [
+                "business.net",
+                "hot-dog.org",
+                "butts.io",
+                "butts.horse",
+                "butts.gov",
             ]
-            # showdir = await select_subdir(SHOWS_DIR, console=console)
-
-            # if await confirm("Are there already episodes from this season in [ibid]?"):
-            #     pprint(f'{showdir}/' + await select_subdir(SHOWS_DIR / showdir, console=console))
+            choices = list()
+            for i, domain in enumerate(fake_domains):
+                choices.append(choice(domain, value=i, checked=True if i % 2 == 0 else False))
+            pprint(await multiselect("I don't know what domains to buy, please help", choices=choices))
 
     asyncio.run(test())
