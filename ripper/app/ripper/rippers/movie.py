@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
 def search_movies(title):
+    # cf. https://www.themoviedb.org/settings/api
     url = "https://api.themoviedb.org/3/search/movie"
     params = {
         "api_key": getenv("TMDB_API_KEY"),
