@@ -70,7 +70,16 @@ async def main():
 
     match cli.media_type:
         case 'movie' | 'show':
-            await ripper.rename_ripped_files()
+            try:
+                await ripper.rename_ripped_files()
+            except Exception as err:
+                def reraise(err):
+                    raise err
+
+                if cli.debug:
+                    import ipdb; ipdb.set_trace()
+                else:
+                    raise err
         case 'music':
             pass
         case _:
